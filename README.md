@@ -1,6 +1,6 @@
 # Cloth Simulation with SFML
 
-### Forked from [https://github.com/FelipesCoding/cloth_simulation](FelipesCoding/cloth_simulation)
+### Forked from [FelipesCoding/cloth_simulation](https://github.com/FelipesCoding/cloth_simulation)
 
 ## Added Features
 - Added a wind force to the cloth simulation
