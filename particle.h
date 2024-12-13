@@ -9,13 +9,15 @@ public:
     sf::Vector2f previous_position;
     sf::Vector2f acceleration;
     bool is_pinned;
+    float mass = 1;
 
-    Particle(float x, float y, bool pinned = false) : position(x, y), previous_position(x, y),
-                                acceleration(0, 0), is_pinned(pinned) {}
+    Particle(float x, float y, bool pinned = false,float mass=1.0f) : position(x, y), previous_position(x, y),
+                                acceleration(0, 0), is_pinned(pinned),mass(mass) {}
 
     void apply_force(const sf::Vector2f& force) {
         if (!is_pinned) {
-            acceleration += force;
+            acceleration.x += force.x * mass;
+            acceleration.y += force.y * mass;
         }
     }
 
