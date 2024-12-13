@@ -6,15 +6,35 @@
 #include "constraint.h"
 #include "input_handler.h"
 
-const int WIDTH = 1080;
-const int HEIGHT = 640;
-const float PARTICLE_RADIOUS = 10.0f;
+const int WIDTH = 3840;
+const int HEIGHT = 2160;
+const float PARTICLE_RADIOUS = 5.f;
 const float GRAVITY = 10.0f;
 const float TIME_STEP = 0.1f;
 
-const int ROW = 10;
-const int COL = 10;
-const float REST_DISTANCE = 30.0f;
+const int ROW = 40;
+const int COL = 40;
+const float REST_DISTANCE = 20.0f;
+
+const float MOUSE_INFLUENCE_RADIUS = 50.0f;
+const float MOUSE_FORCE_MULTIPLIER = 1.0f;
+float WIND = 2.0f;
+Particle* findClosestParticle(const sf::Vector2i& mousePos, std::vector<Particle>& particles) {
+    float minDist = MOUSE_INFLUENCE_RADIUS;
+    Particle* closest = nullptr;
+    
+    for (auto& p : particles) {
+        float dx = p.position.x - mousePos.x;
+        float dy = p.position.y - mousePos.y;
+        float dist = std::sqrt(dx*dx + dy*dy);
+        
+        if (dist < minDist) {
+            minDist = dist;
+            closest = &p;
+        }
+    }
+    return closest;
+}
 
 int main() {
     sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Cloth Simulation");
@@ -25,8 +45,8 @@ int main() {
 
     for (int row = 0; row < ROW; row++) {
         for (int col = 0; col < COL; col++) {
-            float x = col * REST_DISTANCE + WIDTH/3;
-            float y = row * REST_DISTANCE + HEIGHT/3;
+            float x = col * REST_DISTANCE +REST_DISTANCE*COL/2;
+            float y = row * REST_DISTANCE + 10;
             bool pinned = (row == 0);
             particles.emplace_back(x, y, pinned);
         }
@@ -46,6 +66,10 @@ int main() {
         }
     }
 
+    sf::Vector2i lastMousePos;
+    bool isDragging = false;
+    Particle* selectedParticle = nullptr;
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -56,11 +80,45 @@ int main() {
             // handle mouse clicks
             InputHandler::handle_mouse_click(event, particles, constraints);
 
+            // Mouse button pressed
+            if (event.type == sf::Event::MouseButtonPressed) {
+                if (event.mouseButton.button == sf::Mouse::Left) {
+                    sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                    selectedParticle = findClosestParticle(mousePos, particles);
+                    if (selectedParticle) {
+                        isDragging = true;
+                        lastMousePos = mousePos;
+                        selectedParticle->is_pinned = true;  // Line 91
+
+                    }
+                }
+            }
+
+            // Mouse button released
+            if (event.type == sf::Event::MouseButtonReleased) {
+                if (event.mouseButton.button == sf::Mouse::Left) {
+                    if (selectedParticle) {
+                        selectedParticle->is_pinned = false; // Line 100
+                        selectedParticle = nullptr;
+                    }
+                    isDragging = false;
+                }
+            }
+
+            // Mouse moved
+            if (event.type == sf::Event::MouseMoved) {
+                if (isDragging && selectedParticle) {
+                    sf::Vector2i currentMousePos = sf::Mouse::getPosition(window);
+                    selectedParticle->position.x += MOUSE_FORCE_MULTIPLIER*(currentMousePos.x - lastMousePos.x);
+                    selectedParticle->position.y += MOUSE_FORCE_MULTIPLIER*(currentMousePos.y - lastMousePos.y);
+                    lastMousePos = currentMousePos;
+                }
+            }
         }
 
         //apply gravity and update particles
         for (auto& particle : particles) {
-            particle.apply_force(sf::Vector2f(0, GRAVITY));
+            particle.apply_force(sf::Vector2f(WIND, GRAVITY));
             particle.update(TIME_STEP);
             particle.constrain_to_bounds(WIDTH, HEIGHT);
         }
@@ -96,8 +154,8 @@ int main() {
                 continue;
             }
             sf::Vertex line[] = {
-                sf::Vertex(constraint.p1->position, sf::Color::White),
-                sf::Vertex(constraint.p2->position, sf::Color::White),
+                sf::Vertex(constraint.p1->position, sf::Color::Cyan),
+                sf::Vertex(constraint.p2->position, sf::Color::Cyan),
             };
             window.draw(line, 2, sf::Lines);
         }

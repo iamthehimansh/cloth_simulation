@@ -76,6 +76,7 @@ private:
             nearest->deactivate();
         }
     }
+    
 };
 
 #endif // INPUT_HANDLER_H
